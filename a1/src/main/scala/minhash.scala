@@ -7,7 +7,7 @@ object minhash {
 
 
   def shingle_line(stList: List[String], shingleSize:Int):Shingled_Record = {
-    if (stList.isEmpty) throw new IllegalArgumentException("...")
+    if (stList.isEmpty) throw new IllegalArgumentException("Empty List dum dum!")
     
     val id = stList.head
     val words = stList.tail
@@ -24,10 +24,21 @@ object minhash {
     Shingled_Record(id, nWords, shingles)
   }
 
-  def minhash_record(r: Shingled_Record, hashFuncs: List[Hash_Func]): Min_Hash_Record = ???
+  def minhash_record(r: Shingled_Record, hashFuncs: List[Hash_Func]): Min_Hash_Record = {
+    if (r.shingles.isEmpty) throw new IllegalArgumentException("Empty Shingles dummy")
+
+    val shingles = r.shingles.get
+
+    val minHashes = hashFuncs.map(h =>
+      shingles
+        .map(h)
+        .min
+    ).toVector
+    Min_Hash_Record(r.id, minHashes)
+  }
 
   def compute_jaccard_pair(a:Shingled_Record, b: Shingled_Record): Similarity = {
-    if (a.shingles.isEmpty || b.shingles.isEmpty) throw new IllegalArgumentException("...")
+    if (a.shingles.isEmpty || b.shingles.isEmpty) throw new IllegalArgumentException("Illegal empty set you fool!")
 
     val setA = a.shingles.get
     val setB = b.shingles.get
@@ -42,12 +53,35 @@ object minhash {
 
 
 
-  def find_jaccard_matches(records: RDD[Shingled_Record], minSimilarity:Double): Matches = ???
+  def find_jaccard_matches(records: RDD[Shingled_Record], minSimilarity:Double): Matches = {
+    records
+      .cartesian(records)
+      .filter { case (a, b) => a.id < b.id }
+      .map { case (a, b) => compute_jaccard_pair(a, b) }
+      .filter(s => s.sim >= minSimilarity)
+      .collect()
+  }
 
-  def compute_minhash_pair(a: Min_Hash_Record, b: Min_Hash_Record): Similarity = ???
+  def compute_minhash_pair(a: Min_Hash_Record, b: Min_Hash_Record): Similarity = {
+      val matches = a.minHashes
+        .zip(b.minHashes)
+        .count { case (x, y) => x == y }
 
-  def find_minhash_candidates(records:RDD[Min_Hash_Record], minSimilarity:Double): Candidates = ???
+    val sim = matches.toDouble / a.minHashes.size.toDouble
 
+    Similarity(a.id, b.id, sim)
+  }
+
+
+
+  def find_minhash_candidates(records:RDD[Min_Hash_Record], minSimilarity:Double): Candidates = {
+    records
+      .cartesian(records)
+      .filter { case (a, b) => a.id < b.id }
+      .map { case (a, b) => compute_minhash_pair(a, b) }
+      .filter(s => s.sim >= minSimilarity)
+      .collect() 
+  }
   def find_lsh_bucket_sets(minHashes: RDD[Min_Hash_Record],
                            bandSize: Int,
                            bandHashFuncs: List[List[Int] => Int]): RDD[Iterable[Min_Hash_Record]] = ???
