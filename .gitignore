@@ -1,0 +1,16 @@
+# SBT build artifacts
+target/
+project/target/
+project/project/
+
+# Metals (Scala LSP)
+.metals/
+.bloop/
+
+# VSCode
+.vscode/
+
+# Test output
+/tmp/test-*.output
+/tmp/test-*.results
+/tmp/test-*.expected-results
