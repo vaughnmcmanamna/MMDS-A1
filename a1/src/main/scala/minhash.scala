@@ -72,8 +72,6 @@ object minhash {
     Similarity(a.id, b.id, sim)
   }
 
-
-
   def find_minhash_candidates(records:RDD[Min_Hash_Record], minSimilarity:Double): Candidates = {
     records
       .cartesian(records)
