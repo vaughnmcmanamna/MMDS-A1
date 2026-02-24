@@ -80,12 +80,24 @@ object minhash {
       .filter(s => s.sim >= minSimilarity)
       .collect() 
   }
-  def find_lsh_bucket_sets(minHashes: RDD[Min_Hash_Record],
-                           bandSize: Int,
-                           bandHashFuncs: List[List[Int] => Int]): RDD[Iterable[Min_Hash_Record]] = ???
+  def find_lsh_bucket_sets(minHashes: RDD[Min_Hash_Record], bandSize: Int, bandHashFuncs: List[List[Int] => Int]): RDD[Iterable[Min_Hash_Record]] = {
+    minHashes.flatMap { record =>
+      val bands = record.minHashes.toList.grouped(bandSize).toList
+      bands.zipWithIndex.map { case (band, bandIdx) =>
+        val bucketKey = (bandIdx, bandHashFuncs(bandIdx)(band))
+        (bucketKey, record)
+      }              
+    }                
+  .groupByKey()
+  .values
+  }
 
-  def compute_lsh_candidates_similarity(candidatePairs: RDD[(Min_Hash_Record, Min_Hash_Record)],
-                                        minSimilarity: Double): Candidates = ???
+  def compute_lsh_candidates_similarity(candidatePairs: RDD[(Min_Hash_Record, Min_Hash_Record)],minSimilarity: Double): Candidates = {
+    candidatePairs
+      .map { case (a, b) => compute_minhash_pair(a, b) }
+      .filter(s => s.sim >= minSimilarity)
+      .collect() 
+  }
 }
 
 
